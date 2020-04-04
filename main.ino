@@ -23,7 +23,7 @@ const byte CURSOR_COLUMN_POSITION = 0;
 const byte CURSOR_ROW_POSITION = 0;
 const byte CURSOR_RPM_POSITION = 5;
 
-const String spaces = "    ";
+const String spaces = "     ";
 
 LiquidCrystal lcd(RS, E, D4, D5, D6, D7);
 
@@ -53,13 +53,41 @@ void sensor()
 
 void loop()
 {
-    lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
-    lcd.print(rpm);
-    lcd.print(spaces);
     unsigned long currentTime = millis();
-
     if ((currentTime - lastSignalTime) > TIMEOUT_IN_MILLIS)
     {
         rpm = 0;
+    }
+
+    if (rpm >= RPM_MIN && rpm <= RPM_MAX)
+    {
+        lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
+        lcd.print(rpm);
+        lcd.print(spaces);
+    }
+    else if (rpm < RPM_MIN)
+    {
+        if (rpm == 0)
+        {
+            lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
+            lcd.print(rpm);
+            lcd.print(spaces);
+        }
+        else
+        {
+            lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
+            String rpmMinToString = String(RPM_MIN);
+            String message = "< " + rpmMinToString;
+            lcd.print(message);
+            lcd.print(spaces);
+        }
+    }
+    else if (rpm > RPM_MAX)
+    {
+        lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
+        String rpmMaxToString = String(RPM_MAX);
+        String message = "> " + rpmMaxToString;
+        lcd.print(message);
+        lcd.print(spaces);
     }
 }
