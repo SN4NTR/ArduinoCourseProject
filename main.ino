@@ -9,25 +9,28 @@
 #define DIGITAL_SIGNAL 2
 #define INTERRUPT_PORT 0
 
-const int TIMEOUT = 3000;
+const long MINUTE_IN_MILLIS = 60000;
+
+const int TIMEOUT_IN_MILLIS = 1000;
 const int CHANGE_RATE = 9600;
+const int RPM_MIN = 500;
+const int RPM_MAX = 8000;
+const int RPM_STEP = 500;
 
 const byte LCD_COLUMNS_AMOUNT = 16;
 const byte LCD_ROWS_AMOUNT = 1;
-
 const byte CURSOR_COLUMN_POSITION = 0;
 const byte CURSOR_ROW_POSITION = 0;
+const byte CURSOR_RPM_POSITION = 5;
 
-// initialize library with pin nubers
+const String spaces = "    ";
+
 LiquidCrystal lcd(RS, E, D4, D5, D6, D7);
 
 volatile unsigned long lastSignalTime;
 volatile unsigned long timeBeetweenRotates;
-volatile unsigned long lastDisplayTime;
 
 unsigned int rpm;
-
-String spaces = "    ";
 
 void setup()
 {
@@ -44,18 +47,19 @@ void setup()
 void sensor()
 {
     unsigned long currentTime = millis();
-    rpm = (60000 / (currentTime - lastSignalTime));
+    rpm = (MINUTE_IN_MILLIS / (currentTime - lastSignalTime));
     lastSignalTime = currentTime;
 }
 
 void loop()
 {
-    lcd.setCursor(5, 0);
+    lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
     lcd.print(rpm);
     lcd.print(spaces);
-    lastDisplayTime = millis();
+    unsigned long currentTime = millis();
 
-    if ((millis() - lastSignalTime) > 1000) {
+    if ((currentTime - lastSignalTime) > TIMEOUT_IN_MILLIS)
+    {
         rpm = 0;
     }
 }
