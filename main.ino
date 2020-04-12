@@ -9,9 +9,10 @@
 #define DIGITAL_SIGNAL 2
 #define INTERRUPT_PORT 0
 
-const long MINUTE_IN_MILLIS = 60000;
+const long REFRESH_RATE = 500000L;
+const long MINUTE_IN_MICROS = 60000000L;
+const long TIMEOUT_IN_MICROS = 1000000L;
 
-const int TIMEOUT_IN_MILLIS = 1000;
 const int CHANGE_RATE = 9600;
 const int RPM_MIN = 500;
 const int RPM_MAX = 8000;
@@ -28,7 +29,7 @@ const String spaces = "     ";
 LiquidCrystal lcd(RS, E, D4, D5, D6, D7);
 
 volatile unsigned long lastSignalTime;
-volatile unsigned long timeBeetweenRotates;
+volatile unsigned long lastDisplayTime;
 
 unsigned int rpm;
 
@@ -36,58 +37,55 @@ void setup()
 {
     Serial.begin(CHANGE_RATE);
     attachInterrupt(INTERRUPT_PORT, sensor, RISING);
+    pinMode(DIGITAL_SIGNAL, INPUT);
 
     lcd.begin(LCD_COLUMNS_AMOUNT, LCD_ROWS_AMOUNT);
     lcd.setCursor(CURSOR_COLUMN_POSITION, CURSOR_ROW_POSITION);
     lcd.print("RPM: ");
-
-    pinMode(DIGITAL_SIGNAL, INPUT);
 }
 
 void sensor()
 {
-    unsigned long currentTime = millis();
-    rpm = (MINUTE_IN_MILLIS / (currentTime - lastSignalTime));
+    unsigned long currentTime = micros();
+    rpm = (MINUTE_IN_MICROS / (currentTime - lastSignalTime));
     lastSignalTime = currentTime;
 }
 
 void loop()
 {
-    unsigned long currentTime = millis();
-    if ((currentTime - lastSignalTime) > TIMEOUT_IN_MILLIS)
+    checkRotation();
+
+    if (rpm > RPM_MAX)
+    {
+        displayNumber(RPM_MAX);
+    }
+    else
+    {
+        int rpmWithStep = round(rpm / RPM_STEP) * RPM_STEP;
+        displayNumber(rpmWithStep);
+    }
+}
+
+void displayNumber(int number)
+{
+    unsigned long currentTime = micros();
+
+    if (currentTime - lastDisplayTime > REFRESH_RATE)
+    {
+        lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
+        lcd.print(number);
+        lcd.print(spaces);
+
+        lastDisplayTime = currentTime;
+    }
+}
+
+void checkRotation()
+{
+    unsigned long currentTime = micros();
+
+    if ((currentTime - lastSignalTime) > TIMEOUT_IN_MICROS)
     {
         rpm = 0;
-    }
-
-    if (rpm >= RPM_MIN && rpm <= RPM_MAX)
-    {
-        lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
-        lcd.print(rpm);
-        lcd.print(spaces);
-    }
-    else if (rpm < RPM_MIN)
-    {
-        if (rpm == 0)
-        {
-            lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
-            lcd.print(rpm);
-            lcd.print(spaces);
-        }
-        else
-        {
-            lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
-            String rpmMinToString = String(RPM_MIN);
-            String message = "< " + rpmMinToString;
-            lcd.print(message);
-            lcd.print(spaces);
-        }
-    }
-    else if (rpm > RPM_MAX)
-    {
-        lcd.setCursor(CURSOR_RPM_POSITION, CURSOR_ROW_POSITION);
-        String rpmMaxToString = String(RPM_MAX);
-        String message = "> " + rpmMaxToString;
-        lcd.print(message);
-        lcd.print(spaces);
     }
 }
